@@ -1,5 +1,6 @@
 from loguru import logger
-from pyrogram import Client, idle
+from pyrogram.client import Client
+from pyrogram.sync import idle
 
 from .config import settings
 from .handlers import register_handlers
@@ -31,7 +32,9 @@ class SyncBot:
             else:
                 logger.info(f"Поиск пропущенных сообщений после ID {last_id}...")
                 # We reuse the history object or get a new one
-                history2 = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_CATCHUP)
+                history2 = self.app.get_chat_history(
+                    chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_CATCHUP
+                )
                 if history2:
                     async for msg in history2:
                         if msg.id <= last_id:
@@ -59,4 +62,4 @@ class SyncBot:
         await self.app.stop()
 
     def run(self) -> None:
-        self.app.run(self.start())
+        self.app.run(self.start())  # type: ignore

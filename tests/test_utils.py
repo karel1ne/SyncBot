@@ -48,3 +48,31 @@ def test_load_state_invalid_json(tmp_path):
     manager = StateManager(str(state_file))
     # StateManager handles JSONDecodeError by returning None and logging
     assert manager.load_last_message_id() is None
+
+def test_timed_operation_unexpected_error(mocker):
+    """Test timed_operation logs ERROR for standard exceptions."""
+    from syncbot.utils import timed_operation
+    mock_logger = mocker.patch("syncbot.utils.logger")
+    
+    with pytest.raises(ValueError, match="Test error"):
+        with timed_operation("test_op"):
+            raise ValueError("Test error")
+            
+    mock_logger.error.assert_called_once()
+    assert "Operation test_op failed" in mock_logger.error.call_args[0][0]
+
+def test_timed_operation_expected_error(mocker):
+    """Test timed_operation logs DEBUG for expected exceptions."""
+    from syncbot.utils import timed_operation
+    mock_logger = mocker.patch("syncbot.utils.logger")
+    
+    class ExpectedError(Exception):
+        pass
+
+    with pytest.raises(ExpectedError, match="Test expected error"):
+        with timed_operation("test_op", expected_errors=(ExpectedError,)):
+            raise ExpectedError("Test expected error")
+            
+    mock_logger.error.assert_not_called()
+    mock_logger.debug.assert_called_once()
+    assert "Operation test_op failed with expected error ExpectedError" in mock_logger.debug.call_args[0][0]

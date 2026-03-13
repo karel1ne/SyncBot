@@ -2,7 +2,8 @@ import os
 from typing import Any
 
 from loguru import logger
-from pyrogram import Client
+from pyrogram.client import Client
+from pyrogram.errors import ChatForwardsRestricted
 from pyrogram.types import (
     InputMediaPhoto,
     InputMediaVideo,
@@ -54,7 +55,30 @@ async def manual_copy_group(client: Client, messages: list[Message]) -> bool:
                     )
 
         if media:
-            await client.send_media_group(chat_id=settings.DEST_CHANNEL, media=media)
+            try:
+                await client.send_media_group(chat_id=settings.DEST_CHANNEL, media=media)
+            except TypeError as te:
+                if "topics" in str(te) or "missing" in str(te):
+                    logger.warning(f"⚠️ Ошибка библиотеки при отправке альбома ({te}), отправляем медиа по одному...")
+                    for i, (msg, path) in enumerate(zip(messages, file_paths)):
+                        caption = msg.caption or ""
+                        entities = msg.caption_entities or msg.entities
+                        if msg.photo:
+                            await client.send_photo(
+                                settings.DEST_CHANNEL,
+                                path,
+                                caption=caption,
+                                caption_entities=entities,  # type: ignore
+                            )
+                        elif msg.video:
+                            await client.send_video(
+                                settings.DEST_CHANNEL,
+                                path,
+                                caption=caption,
+                                caption_entities=entities,  # type: ignore
+                            )
+                else:
+                    raise te
 
         for path in file_paths:
             if path and os.path.exists(path):
@@ -87,19 +111,47 @@ async def manual_copy(client: Client, message: Message) -> bool:
                 file_path = await message.download()
 
             if message.photo:
-                await client.send_photo(settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities)
+                await client.send_photo(
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
+                )
             elif message.video:
-                await client.send_video(settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities)
+                await client.send_video(
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
+                )
             elif message.document:
-                await client.send_document(settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities)
+                await client.send_document(
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
+                )
             elif message.animation:
                 await client.send_animation(
-                    settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
                 )
             elif message.audio:
-                await client.send_audio(settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities)
+                await client.send_audio(
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
+                )
             elif message.voice:
-                await client.send_voice(settings.DEST_CHANNEL, file_path, caption=caption, caption_entities=entities)
+                await client.send_voice(
+                    settings.DEST_CHANNEL,
+                    file_path,
+                    caption=caption,
+                    caption_entities=entities,  # type: ignore
+                )
             elif message.sticker and message.sticker.file_id:
                 await client.send_sticker(settings.DEST_CHANNEL, message.sticker.file_id)
             else:
@@ -126,14 +178,15 @@ async def copy_message(client: Client, message: Message) -> bool:
     with logger.contextualize(message_id=message.id, chat_id=settings.SOURCE_CHANNEL):
         try:
             if message.media_group_id:
-                if message.media_group_id in PROCESSED_GROUPS:
+                group_id_str = str(message.media_group_id)
+                if group_id_str in PROCESSED_GROUPS:
                     return True
 
-                logger.info(f"📦 Обнаружен альбом (ID группы: {message.media_group_id}), получаем все сообщения...")
+                logger.info(f"📦 Обнаружен альбом (ID группы: {group_id_str}), получаем все сообщения...")
                 group_messages = await client.get_media_group(chat_id=settings.SOURCE_CHANNEL, message_id=message.id)
 
                 try:
-                    with timed_operation("copy_media_group"):
+                    with timed_operation("copy_media_group", expected_errors=(ChatForwardsRestricted,)):
                         await client.copy_media_group(
                             chat_id=settings.DEST_CHANNEL,
                             from_chat_id=settings.SOURCE_CHANNEL,
@@ -142,26 +195,26 @@ async def copy_message(client: Client, message: Message) -> bool:
                     max_id = max(msg.id for msg in group_messages)
                     logger.info(f"✅ Альбом скопирован успешно. Max ID: {max_id}")
                     state_manager.save_last_message_id(max_id)
-                    PROCESSED_GROUPS.add(message.media_group_id)
+                    PROCESSED_GROUPS.add(group_id_str)
                     await safe_sleep()
                     return True
                 except Exception as e:
-                    if "CHAT_FORWARDS_RESTRICTED" in str(e):
+                    if isinstance(e, ChatForwardsRestricted) or "CHAT_FORWARDS_RESTRICTED" in str(e):
                         logger.warning("⚠️ Альбом защищен, используем ручное копирование...")
                         success = await manual_copy_group(client, group_messages)
                         if success:
-                            PROCESSED_GROUPS.add(message.media_group_id)
+                            PROCESSED_GROUPS.add(group_id_str)
                         return success
                     raise e
 
-            with timed_operation("copy_single_message"):
+            with timed_operation("copy_single_message", expected_errors=(ChatForwardsRestricted,)):
                 await message.copy(chat_id=settings.DEST_CHANNEL)
             logger.info(f"✅ Скопировано сообщение {message.id}")
             state_manager.save_last_message_id(message.id)
             await safe_sleep()
             return True
         except Exception as e:
-            if "CHAT_FORWARDS_RESTRICTED" in str(e):
+            if isinstance(e, ChatForwardsRestricted) or "CHAT_FORWARDS_RESTRICTED" in str(e):
                 logger.warning(f"⚠️ Канал защищен, используем download/upload для {message.id}...")
                 return await manual_copy(client, message)
 

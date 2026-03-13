@@ -1,12 +1,10 @@
 import asyncio
 import time
+from collections.abc import Callable, Coroutine, Generator
 from contextlib import contextmanager
 from functools import wraps
 from typing import (
     Any,
-    Callable,
-    Coroutine,
-    Generator,
     ParamSpec,
     TypeVar,
 )
@@ -28,13 +26,18 @@ async def safe_sleep(seconds: float | None = None) -> None:
 
 
 def setup_logging() -> None:
-    """Configure logging with both human-readable and structured outputs."""
+    """Configure logging and apply library patches."""
     import sys
 
     logger.remove()
     logger.add(
         sys.stderr,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>"
+        ),
         level="INFO",
     )
     logger.add(
@@ -45,24 +48,37 @@ def setup_logging() -> None:
         level="DEBUG",
         serialize=True,
     )
-    logger.add("bot.log", rotation=settings.LOG_ROTATION, retention=settings.LOG_RETENTION, compression="zip", level="INFO")
+    logger.add(
+        "bot.log", rotation=settings.LOG_ROTATION, retention=settings.LOG_RETENTION, compression="zip", level="INFO"
+    )
 
 
 @contextmanager
-def timed_operation(name: str, **kwargs: Any) -> Generator[None, None, None]:
+def timed_operation(
+    name: str, expected_errors: tuple[type[Exception], ...] | None = None, **kwargs: Any
+) -> Generator[None]:
     """Context manager to time an operation and log its duration."""
     start_time = time.perf_counter()
     try:
         yield
     except Exception as e:
         elapsed = (time.perf_counter() - start_time) * 1000
-        logger.error(
-            f"Operation {name} failed after {elapsed:.2f}ms: {e}",
-            duration_ms=round(elapsed, 2),
-            operation=name,
-            status="error",
-            **kwargs,
-        )
+        if expected_errors and isinstance(e, expected_errors):
+            logger.debug(
+                f"Operation {name} failed with expected error {e.__class__.__name__} after {elapsed:.2f}ms",
+                duration_ms=round(elapsed, 2),
+                operation=name,
+                status="expected_error",
+                **kwargs,
+            )
+        else:
+            logger.error(
+                f"Operation {name} failed after {elapsed:.2f}ms: {e}",
+                duration_ms=round(elapsed, 2),
+                operation=name,
+                status="error",
+                **kwargs,
+            )
         raise
     else:
         elapsed = (time.perf_counter() - start_time) * 1000
@@ -75,7 +91,9 @@ def timed_operation(name: str, **kwargs: Any) -> Generator[None, None, None]:
         )
 
 
-def observe(name: str | None = None) -> Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]:
+def observe(
+    name: str | None = None,
+) -> Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]:
     """Decorator to automatically time and log an async function."""
 
     def decorator(func: Callable[P, Coroutine[Any, Any, R]]) -> Callable[P, Coroutine[Any, Any, R]]:

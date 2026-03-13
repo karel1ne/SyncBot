@@ -1,5 +1,6 @@
-from pyrogram import Client, filters
-from pyrogram.handlers import MessageHandler
+from pyrogram import filters
+from pyrogram.client import Client
+from pyrogram.handlers.message_handler import MessageHandler
 from pyrogram.types import Message
 
 from .config import settings
@@ -8,7 +9,7 @@ from .state import state_manager
 
 
 async def process_new_message(client: Client, message: Message) -> None:
-    if message.media_group_id and message.media_group_id in PROCESSED_GROUPS:
+    if message.media_group_id and str(message.media_group_id) in PROCESSED_GROUPS:
         return
 
     last_id = state_manager.load_last_message_id()
