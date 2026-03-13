@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  mirror-bot:
+    build: .
+    # Контейнер будет автоматически перезапускаться при падении
+    restart: unless-stopped
+    volumes:
+      # Пробрасываем файл сессии, чтобы бот оставался авторизованным
+      - ./my_account.session:/app/my_account.session
+      # Пробрасываем файл состояния для сохранения прогресса
+      - ./state.json:/app/state.json
+    env_file:
+      - .env
