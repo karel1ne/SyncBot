@@ -10,5 +10,7 @@ services:
       - ./my_account.session:/app/my_account.session
       # Пробрасываем файл состояния для сохранения прогресса
       - ./state.json:/app/state.json
+      # Пробрасываем конфигурационный файл (раскомментируйте, если используете config.yaml)
+      # - ./config.yaml:/app/config.yaml:ro
     env_file:
       - .env

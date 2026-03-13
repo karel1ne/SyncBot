@@ -1,0 +1,8 @@
+description = "Run all project checks (lint, format, types, tests)"
+prompt = """
+First, run ruff check src.
+Then, run ruff format src --check.
+Then, run mypy src.
+Then, run pytest.
+Provide a summary of all check results.
+"""

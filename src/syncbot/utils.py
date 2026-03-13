@@ -5,17 +5,25 @@ from functools import wraps
 from typing import (
     Any,
     Callable,
+    Coroutine,
     Generator,
+    ParamSpec,
     TypeVar,
 )
 
 from loguru import logger
 
+from .config import settings
+
 T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-async def safe_sleep(seconds: float = 2.0) -> None:
+async def safe_sleep(seconds: float | None = None) -> None:
     """Helper to avoid flood limits."""
+    if seconds is None:
+        seconds = settings.SLEEP_DURATION
     await asyncio.sleep(seconds)
 
 
@@ -31,13 +39,13 @@ def setup_logging() -> None:
     )
     logger.add(
         "bot.json.log",
-        rotation="10 MB",
-        retention="7 days",
+        rotation=settings.LOG_ROTATION,
+        retention=settings.LOG_RETENTION,
         compression="zip",
         level="DEBUG",
         serialize=True,
     )
-    logger.add("bot.log", rotation="10 MB", retention="7 days", compression="zip", level="INFO")
+    logger.add("bot.log", rotation=settings.LOG_ROTATION, retention=settings.LOG_RETENTION, compression="zip", level="INFO")
 
 
 @contextmanager
@@ -67,14 +75,14 @@ def timed_operation(name: str, **kwargs: Any) -> Generator[None, None, None]:
         )
 
 
-def observe(name: str | None = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def observe(name: str | None = None) -> Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]:
     """Decorator to automatically time and log an async function."""
 
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(func: Callable[P, Coroutine[Any, Any, R]]) -> Callable[P, Coroutine[Any, Any, R]]:
         op_name = name or func.__name__
 
         @wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             with timed_operation(op_name):
                 return await func(*args, **kwargs)
 

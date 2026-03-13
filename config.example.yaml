@@ -1,0 +1,12 @@
+# Каналы (источник и назначение)
+source_channel: -100123456789
+dest_channel: "my_channel_username"
+
+# Настройки поведения бота
+history_limit_initial: 100
+history_limit_catchup: 200
+sleep_duration: 2.0
+
+# Логирование
+log_rotation: "10 MB"
+log_retention: "7 days"

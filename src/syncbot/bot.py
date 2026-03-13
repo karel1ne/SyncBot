@@ -22,16 +22,16 @@ class SyncBot:
         last_id = state_manager.load_last_message_id()
         messages_to_copy = []
 
-        history = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=100)
+        history = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_INITIAL)
         if history:
             if last_id is None:
-                logger.info("Первый запуск: собираем последние 100 сообщений...")
+                logger.info(f"Первый запуск: собираем последние {settings.HISTORY_LIMIT_INITIAL} сообщений...")
                 async for msg in history:
                     messages_to_copy.append(msg)
             else:
                 logger.info(f"Поиск пропущенных сообщений после ID {last_id}...")
                 # We reuse the history object or get a new one
-                history2 = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=200)
+                history2 = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_CATCHUP)
                 if history2:
                     async for msg in history2:
                         if msg.id <= last_id:
