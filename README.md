@@ -1,6 +1,6 @@
 # SyncBot — Телеграм-бот для зеркалирования сообщений
 
-Надежный Telegram userbot, написанный на Python 3.13 с использованием библиотеки [Pyrofork](https://github.com/Mayuri-Chan/pyrofork) (форк Pyrogram). Бот автоматически синхронизирует сообщения и медиа-группы между каналами, поддерживая обход ограничений на пересылку контента.
+Надежный Telegram userbot, написанный на Python 3.13 с использованием библиотеки [Kurigram](https://github.com/Kurimuzard/kurigram) (форк Pyrogram). Бот автоматически синхронизирует сообщения и медиа-группы между каналами, поддерживая обход ограничений на пересылку контента.
 
 ## Обзор возможностей
 
@@ -13,9 +13,9 @@
 ## Технологический стек
 
 - **Python:** 3.13+
-- **Telegram Library:** `pyrofork` (современная альтернатива Pyrogram)
+- **Telegram Library:** `kurigram` (современная альтернатива Pyrogram)
 - **Dependency Management:** `uv`
-- **Configuration:** `pydantic-settings`
+- **Configuration:** `pydantic-settings` (поддержка YAML/ENV)
 - **Logging:** `loguru`
 - **Containerization:** Docker & Docker Compose
 
@@ -86,8 +86,10 @@ docker compose up -d --build
     - `logic.py`: Основная логика копирования сообщений и обхода ограничений.
     - `handlers.py`: Обработчики входящих событий Telegram.
     - `config.py`: Управление конфигурацией через Pydantic.
+    - `state.py`: Работа с состоянием (JSON).
 - `state.json`: Файл для хранения ID последнего обработанного сообщения.
 - `my_account.session`: Файл сессии Telegram (не для коммита!).
+- `get_session.py`: Скрипт для генерации `SESSION_STRING`.
 
 ## Лицензия
 

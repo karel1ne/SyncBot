@@ -1,6 +1,6 @@
 # SyncBot - Telegram Mirror Userbot
 
-A robust Telegram message mirroring userbot built with Python 3.13 and [Pyrogram](https://github.com/pyrogram/pyrogram). It synchronizes messages and media groups between channels, with built-in support for bypassing forward restrictions.
+A robust Telegram message mirroring userbot built with Python 3.13 and [Kurigram](https://github.com/Kurimuzard/kurigram) (a modern Pyrogram fork). It synchronizes messages and media groups between channels, with built-in support for bypassing forward restrictions.
 
 ## Project Overview
 
@@ -12,8 +12,9 @@ A robust Telegram message mirroring userbot built with Python 3.13 and [Pyrogram
 ## Technical Stack
 
 *   **Python:** 3.13+
-*   **Telegram Library:** `pyrogram`
+*   **Telegram Library:** `kurigram` (Pyrogram fork)
 *   **Dependency Management:** `uv`
+*   **Configuration:** `pydantic-settings` (YAML and ENV support)
 *   **Logging:** `loguru`
 *   **Containerization:** Docker & Docker Compose
 *   **Quality Tools:** Ruff (linting/formatting), Mypy (strict type checking), Pytest (testing)
@@ -33,10 +34,21 @@ Create a `.env` file based on `.env.example`:
 ```env
 API_ID=your_api_id
 API_HASH=your_api_hash
-SESSION_STRING=optional_string_session
 SOURCE_CHANNEL=-100... or username
 DEST_CHANNEL=-100... or username
+# Optional:
+SESSION_STRING=optional_string_session
 ```
+
+### Getting SESSION_STRING
+
+To run in Docker or on a remote server without interactive login:
+1.  Fill `API_ID` and `API_HASH` in `.env`.
+2.  Run the helper script:
+    ```bash
+    uv run python get_session.py
+    ```
+3.  Follow the prompts and copy the resulting string to your `.env` as `SESSION_STRING`.
 
 ### Running Locally
 
@@ -55,7 +67,7 @@ DEST_CHANNEL=-100... or username
 ```bash
 docker compose up -d --build
 ```
-*Note: Ensure `my_account.session` exists if you want to avoid re-authentication inside the container, or use `SESSION_STRING` in `.env`.*
+*Note: Use `SESSION_STRING` in `.env` for seamless Docker deployment.*
 
 ## Development
 
@@ -71,12 +83,13 @@ docker compose up -d --build
 *   `src/syncbot/`: Main package directory.
     *   `__main__.py`: Entry point.
     *   `bot.py`: Core userbot class (SyncBot).
-    *   `config.py`: Configuration management.
+    *   `config.py`: Configuration management (Pydantic).
     *   `handlers.py`: Message handlers.
-    *   `logic.py`: Mirroring logic.
+    *   `logic.py`: Mirroring logic (manual copy, etc.).
     *   `state.py`: Persistence (state.json).
     *   `utils.py`: Helpers.
 *   `state.json`: Persists the ID of the last processed message.
+*   `get_session.py`: Script for generating `SESSION_STRING`.
 *   `my_account.session`: Stores Telegram session credentials.
 *   `pyproject.toml`: Project configuration and dependencies.
 *   `tests/`: Comprehensive test suite using `pytest-asyncio` and mocks.
