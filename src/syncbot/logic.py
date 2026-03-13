@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from loguru import logger
-from pyrogram.client import Client
+from pyrogram.client import Client  # type: ignore
 from pyrogram.errors import ChatForwardsRestricted
 from pyrogram.types import (
     InputMediaPhoto,
