@@ -1,6 +1,7 @@
+import asyncio
+
 from loguru import logger
-from pyrogram.client import Client
-from pyrogram.sync import idle
+from pyrogram import Client, idle
 
 from .config import settings
 from .handlers import register_handlers
@@ -11,12 +12,7 @@ from .utils import setup_logging
 
 class SyncBot:
     def __init__(self) -> None:
-        self.app = Client(
-            name=settings.SESSION_NAME,
-            api_id=settings.API_ID,
-            api_hash=settings.API_HASH,
-            session_string=settings.SESSION_STRING,
-        )
+        self.app: Client = None  # type: ignore
 
     async def sync_history(self) -> None:
         logger.info("Проверка истории сообщений...")
@@ -51,15 +47,23 @@ class SyncBot:
     async def start(self) -> None:
         setup_logging()
         logger.info("Запуск бота...")
-        await self.app.start()
+        
+        # Instantiate Client inside the loop
+        self.app = Client(
+            name=settings.SESSION_NAME,
+            api_id=settings.API_ID,
+            api_hash=settings.API_HASH,
+            session_string=settings.SESSION_STRING,
+        )
 
-        await self.sync_history()
-
-        register_handlers(self.app)
-        logger.info(f"Слушаем новые сообщения из {settings.SOURCE_CHANNEL}...")
-
-        await idle()
-        await self.app.stop()
+        async with self.app:
+            await self.sync_history()
+            register_handlers(self.app)
+            logger.info(f"Слушаем новые сообщения из {settings.SOURCE_CHANNEL}...")
+            await idle()
 
     def run(self) -> None:
-        self.app.run(self.start())  # type: ignore
+        try:
+            asyncio.run(self.start())
+        except KeyboardInterrupt:
+            pass
