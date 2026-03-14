@@ -1,8 +1,8 @@
-version: '3.8'
-
 services:
   mirror-bot:
-    build: .
+    build:
+      context: .
+      network: host
     # Контейнер будет автоматически перезапускаться при падении
     restart: unless-stopped
     volumes:
