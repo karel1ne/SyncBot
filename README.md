@@ -1,6 +1,6 @@
 # SyncBot — Телеграм-бот для зеркалирования сообщений
 
-Надежный Telegram userbot, написанный на Python 3.13 с использованием библиотеки [Kurigram](https://github.com/Kurimuzard/kurigram) (форк Pyrogram). Бот автоматически синхронизирует сообщения и медиа-группы между каналами, поддерживая обход ограничений на пересылку контента.
+Надежный Telegram userbot, написанный на Python 3.12 с использованием библиотеки [Kurigram](https://github.com/Kurimuzard/kurigram) (форк Pyrogram). Бот автоматически синхронизирует сообщения и медиа-группы между каналами, поддерживая обход ограничений на пересылку контента.
 
 ## Обзор возможностей
 
@@ -12,7 +12,7 @@
 
 ## Технологический стек
 
-- **Python:** 3.13+
+- **Python:** 3.12+
 - **Telegram Library:** `kurigram` (современная альтернатива Pyrogram)
 - **Dependency Management:** `uv`
 - **Configuration:** `pydantic-settings` (поддержка YAML/ENV)

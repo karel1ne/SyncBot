@@ -3,7 +3,7 @@ name = "syncbot"
 version = "0.1.0"
 description = "Telegram message mirroring bot"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "python-dotenv>=1.2.2",
     "tgcrypto>=1.2.5",
@@ -32,7 +32,7 @@ dev = [
 ]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py312"
 line-length = 120
 
 [tool.ruff.lint]
@@ -40,7 +40,7 @@ select = ["E", "F", "I", "UP"] # Basic errors, Pyflakes, isort, pyupgrade
 ignore = []
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 warn_unused_ignores = false

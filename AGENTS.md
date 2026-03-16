@@ -1,6 +1,6 @@
 # SyncBot - Telegram Mirror Userbot
 
-A robust Telegram message mirroring userbot built with Python 3.13 and [Kurigram](https://github.com/Kurimuzard/kurigram) (a modern Pyrogram fork). It synchronizes messages and media groups between channels, with built-in support for bypassing forward restrictions.
+A robust Telegram message mirroring userbot built with Python 3.12 and [Kurigram](https://github.com/Kurimuzard/kurigram) (a modern Pyrogram fork). It synchronizes messages and media groups between channels, with built-in support for bypassing forward restrictions.
 
 ## Project Overview
 
@@ -11,7 +11,7 @@ A robust Telegram message mirroring userbot built with Python 3.13 and [Kurigram
 
 ## Technical Stack
 
-*   **Python:** 3.13+
+*   **Python:** 3.12+
 *   **Telegram Library:** `kurigram` (Pyrogram fork)
 *   **Dependency Management:** `uv`
 *   **Configuration:** `pydantic-settings` (YAML and ENV support)
