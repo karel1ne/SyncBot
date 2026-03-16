@@ -15,18 +15,18 @@ class SyncBot:
         self.app: Client = None  # type: ignore
 
     async def sync_history(self) -> None:
-        logger.info("Проверка истории сообщений...")
+        logger.info("Checking message history...")
         last_id = state_manager.load_last_message_id()
         messages_to_copy = []
 
         history = self.app.get_chat_history(chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_INITIAL)
         if history:
             if last_id is None:
-                logger.info(f"Первый запуск: собираем последние {settings.HISTORY_LIMIT_INITIAL} сообщений...")
+                logger.info(f"First run: collecting last {settings.HISTORY_LIMIT_INITIAL} messages...")
                 async for msg in history:
                     messages_to_copy.append(msg)
             else:
-                logger.info(f"Поиск пропущенных сообщений после ID {last_id}...")
+                logger.info(f"Searching for missed messages after ID {last_id}...")
                 # We reuse the history object or get a new one
                 history2 = self.app.get_chat_history(
                     chat_id=settings.SOURCE_CHANNEL, limit=settings.HISTORY_LIMIT_CATCHUP
@@ -38,15 +38,15 @@ class SyncBot:
                         messages_to_copy.append(msg)
         if messages_to_copy:
             messages_to_copy.reverse()
-            logger.info(f"Найдено {len(messages_to_copy)} сообщений для копирования.")
+            logger.info(f"Found {len(messages_to_copy)} messages to copy.")
             for msg in messages_to_copy:
                 await copy_message(self.app, msg)
         else:
-            logger.info("Новых пропущенных сообщений нет.")
+            logger.info("No new missed messages found.")
 
     async def start(self) -> None:
         setup_logging()
-        logger.info("Запуск бота...")
+        logger.info("Starting bot...")
         
         # Instantiate Client inside the loop
         self.app = Client(
@@ -59,7 +59,7 @@ class SyncBot:
         async with self.app:
             await self.sync_history()
             register_handlers(self.app)
-            logger.info(f"Слушаем новые сообщения из {settings.SOURCE_CHANNEL}...")
+            logger.info(f"Listening for new messages from {settings.SOURCE_CHANNEL}...")
             await idle()
 
     def run(self) -> None:

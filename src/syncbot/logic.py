@@ -20,13 +20,13 @@ from .utils import (
     timed_operation,
 )
 
-# Множество для отслеживания обработанных медиа-групп
+# Set to track processed media groups
 PROCESSED_GROUPS: set[str] = set()
 
 
 @observe("manual_group_copy")
 async def manual_copy_group(client: Client, messages: list[Message]) -> bool:
-    """Метод для обхода защиты от копирования для альбомов."""
+    """Method to bypass copy protection for albums (media groups)."""
     max_id = max(msg.id for msg in messages)
     file_paths = []
     try:
@@ -76,7 +76,7 @@ async def manual_copy_group(client: Client, messages: list[Message]) -> bool:
             try:
                 await client.send_media_group(chat_id=settings.DEST_CHANNEL, media=media)
             except Exception as e:
-                logger.warning(f"⚠️ Ошибка при отправке альбома ({e}), отправляем медиа по одному...")
+                logger.warning(f"⚠️ Error sending album ({e}), sending media files one by one...")
                 for msg, path in zip(messages, file_paths):
                     await manual_copy(client, msg, file_path=path)
 
@@ -85,12 +85,12 @@ async def manual_copy_group(client: Client, messages: list[Message]) -> bool:
             if path and os.path.exists(path):
                 os.remove(path)
 
-        logger.info(f"✅ (Manual Group) Скопирован альбом. Max ID: {max_id}")
+        logger.info(f"✅ (Manual Group) Album copied. Max ID: {max_id}")
         state_manager.save_last_message_id(max_id)
         await safe_sleep()
         return True
     except Exception as e:
-        logger.error(f"❌ Ошибка при ручном копировании альбома: {e}")
+        logger.error(f"❌ Error during manual album copy: {e}")
         for path in file_paths:
             if path and os.path.exists(path):
                 os.remove(path)
@@ -99,7 +99,7 @@ async def manual_copy_group(client: Client, messages: list[Message]) -> bool:
 
 @observe("manual_single_copy")
 async def manual_copy(client: Client, message: Message, file_path: str | None = None) -> bool:
-    """Метод для обхода защиты от копирования: скачивает файл и загружает его заново."""
+    """Method to bypass copy protection: downloads the file and uploads it as new."""
     try:
         caption = message.caption or ""
         entities = message.caption_entities or message.entities
@@ -107,7 +107,7 @@ async def manual_copy(client: Client, message: Message, file_path: str | None = 
         if message.text:
             await client.send_message(chat_id=settings.DEST_CHANNEL, text=message.text, entities=entities)
         elif message.media:
-            # Сначала обрабатываем типы, которые не требуют скачивания файла
+            # Handle types that don't require file downloading first
             if message.poll:
                 await client.send_poll(
                     chat_id=settings.DEST_CHANNEL,
@@ -150,7 +150,7 @@ async def manual_copy(client: Client, message: Message, file_path: str | None = 
             elif message.dice:
                 await client.send_dice(chat_id=settings.DEST_CHANNEL, emoji=message.dice.emoji)
             else:
-                # Если это скачиваемый тип, загружаем его (если еще не передан)
+                # If it's a downloadable type, download it (if not already provided)
                 if not file_path:
                     with timed_operation("manual_download"):
                         file_path = await message.download()
@@ -208,32 +208,32 @@ async def manual_copy(client: Client, message: Message, file_path: str | None = 
                         file_path,
                     )
                 else:
-                    # Определяем конкретные типы для информативного сообщения об ошибке
+                    # Identify specific types for informative error message
                     media_types = []
                     for attr in ["game", "invoice", "paid_media", "story", "giveaway", "giveaway_winners"]:
                         if getattr(message, attr, None):
                             media_types.append(attr)
 
                     type_info = f" ({', '.join(media_types)})" if media_types else f" ({message.media})"
-                    logger.warning(f"⚠️ Тип медиа не поддерживается для ручного копирования: {message.id}{type_info}")
+                    logger.warning(f"⚠️ Media type not supported for manual copy: {message.id}{type_info}")
                     return False
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
 
-        logger.info(f"✅ (Manual) Скопировано сообщение {message.id}")
+        logger.info(f"✅ (Manual) Copied message {message.id}")
         state_manager.save_last_message_id(message.id)
         await safe_sleep()
         return True
     except Exception as e:
-        logger.error(f"❌ Ошибка при ручном копировании {message.id}: {e}")
+        logger.error(f"❌ Error during manual copy of {message.id}: {e}")
         if "file_path" in locals() and file_path and os.path.exists(file_path):
             os.remove(file_path)
         return False
 
 
 async def copy_message(client: Client, message: Message) -> bool:
-    # Использование contextualize позволяет автоматически добавить message_id во ВСЕ логи внутри блока,
-    # включая те, что вызываются внутри вложенных функций (manual_copy и т.д.)
+    # Use contextualize to automatically add message_id to ALL logs within the block,
+    # including those called within nested functions (manual_copy, etc.)
     with logger.contextualize(message_id=message.id, chat_id=settings.SOURCE_CHANNEL):
         try:
             if message.media_group_id:
@@ -241,7 +241,7 @@ async def copy_message(client: Client, message: Message) -> bool:
                 if group_id_str in PROCESSED_GROUPS:
                     return True
 
-                logger.info(f"📦 Обнаружен альбом (ID группы: {group_id_str}), получаем все сообщения...")
+                logger.info(f"📦 Media group detected (Group ID: {group_id_str}), fetching all messages...")
                 group_messages = await client.get_media_group(chat_id=settings.SOURCE_CHANNEL, message_id=message.id)
 
                 try:
@@ -252,14 +252,14 @@ async def copy_message(client: Client, message: Message) -> bool:
                             message_id=message.id,
                         )
                     max_id = max(msg.id for msg in group_messages)
-                    logger.info(f"✅ Альбом скопирован успешно. Max ID: {max_id}")
+                    logger.info(f"✅ Media group copied successfully. Max ID: {max_id}")
                     state_manager.save_last_message_id(max_id)
                     PROCESSED_GROUPS.add(group_id_str)
                     await safe_sleep()
                     return True
                 except Exception as e:
                     if isinstance(e, ChatForwardsRestricted) or "CHAT_FORWARDS_RESTRICTED" in str(e):
-                        logger.warning("⚠️ Альбом защищен, используем ручное копирование...")
+                        logger.warning("⚠️ Album is protected, using manual copy...")
                         success = await manual_copy_group(client, group_messages)
                         if success:
                             PROCESSED_GROUPS.add(group_id_str)
@@ -268,14 +268,14 @@ async def copy_message(client: Client, message: Message) -> bool:
 
             with timed_operation("copy_single_message", expected_errors=(ChatForwardsRestricted,)):
                 await message.copy(chat_id=settings.DEST_CHANNEL)
-            logger.info(f"✅ Скопировано сообщение {message.id}")
+            logger.info(f"✅ Copied message {message.id}")
             state_manager.save_last_message_id(message.id)
             await safe_sleep()
             return True
         except Exception as e:
             if isinstance(e, ChatForwardsRestricted) or "CHAT_FORWARDS_RESTRICTED" in str(e):
-                logger.warning(f"⚠️ Канал защищен, используем download/upload для {message.id}...")
+                logger.warning(f"⚠️ Channel is protected, using download/upload for {message.id}...")
                 return await manual_copy(client, message)
 
-            logger.error(f"❌ Ошибка копирования {message.id}: {e}")
+            logger.error(f"❌ Copy error for {message.id}: {e}")
             return False
