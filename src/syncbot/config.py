@@ -26,13 +26,16 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
     SESSION_STRING: str | None = None
+    PUBLISHER_BOT_TOKEN: str | None = None
+
+    # --- Mode & Database ---
+    MODE: str = "fetcher"  # fetcher or publisher
+    DATABASE_URL: str = "sqlite+aiosqlite:///shared_data/syncbot.db"
+    DOWNLOAD_DIR: str = "shared_data/downloads"
 
     # --- Configuration (Expected in config.yaml or .env) ---
     SOURCE_CHANNEL: int | str
     DEST_CHANNEL: int | str
-
-    # State file name
-    STATE_FILE: str = "state.json"
 
     # Session name (used for .session file)
     SESSION_NAME: str = "my_account"
